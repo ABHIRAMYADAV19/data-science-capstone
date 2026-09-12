@@ -83,3 +83,56 @@ From the 3rd-release report:
 3. **Specific per-capita index values to spot-check:** US AUI ≈ 3.62, Canada ≈ 2.91, UK ≈ 2.67 (countries); within the US, Washington DC ≈ 3.82 and Utah ≈ 3.78 led per-capita usage. (These are from the Sept-2025 sample, not the June-2026 file we actually have — so in Step 4 I'm checking that our file's `usage_per_capita_index` values for these same geographies are in the same *ballpark and rank order*, not identical, since usage has grown and the sampling method changed between releases.)
 
 ---
+
+## Step 4 — Inventory
+
+Script: `src/inventory.py` (run with `python src/inventory.py` from repo root). It enumerates both files' sizes, row/column counts, dtypes, missing-value rates, and re-derives the Step 3 verification-target values directly from the actual data.
+
+### File inventory
+
+| File | Size | Rows | Cols | Date range covered | Unique `geo_id` |
+|---|---|---|---|---|---|
+| `aei_claude_ai_2026-06-26.csv` | 219.2 MB | 1,636,573 | 10 | 2026-04-01 to 2026-05-01 (i.e. two monthly windows: Apr and May) | 774 |
+| `aei_1p_api_2026-06-26.csv` | 77.3 MB | 491,705 | 10 | 2026-04-01 to 2026-05-01 | 1 (`GLOBAL` only) |
+
+### Columns / dtypes 
+
+| Column | dtype | Missing (NaN) rate |
+|---|---|---|
+| `date_start`, `date_end` | string | 0% |
+| `geo_id`, `geo_level` | string | 0% |
+| `category_name` | string (`onet` / `soc_occupation` / `request` / `overall`) | 0% |
+| `hierarchy_level` | int (0–3) | 0% |
+| `metric_id` | string (53 distinct metrics) | 0% |
+| `value` | float | 0% |
+| `node_name`, `node_external_id` | string | 0% |
+
+**No column has any NaNs in either file.** But this is *not* the same as complete coverage — see the mismatch below. Anthropic's privacy suppression works by **omitting rows entirely**, not by writing nulls, so a "0% missing" column-level number is technically true and also hides the real gap.
+
+### Claimed-vs-actual table (verification targets from Step 3, checked against the actual data)
+
+| Claim (Step 3, from Sept-2025 report) | Actual value found in `aei_claude_ai_2026-06-26.csv` (`usage_per_capita_index`, `overall` category) | Match? |
+|---|---|---|
+| US AUI ≈ 3.62 | 3.87 (Apr), 4.25 (May) | **Directionally consistent** — higher, as expected given ~9 months of usage growth |
+| Canada AUI ≈ 2.91 | 4.65 (Apr), 4.13 (May) | **Consistent with growth**, and now ranks *above* the US, a reordering worth investigating |
+| UK AUI ≈ 2.67 | 3.35 (Apr), 3.40 (May) | **Consistent with growth** |
+| Washington DC AUI ≈ 3.82 | 3.32 (Apr), 3.72 (May) | **Roughly flat / mild decline**, unlike every other geography checked, which all grew |
+| Utah AUI ≈ 3.78 | 1.21 (Apr), 1.26 (May) | **Mismatch.** A ~3x drop, while national and most other geographies grew. This does not fit a simple "measurement noise" explanation and needs investigation (methodology change between releases? sampling-window difference? a real, large shift in Utah's relative usage? population-denominator revision?). Flagging this as a finding, not smoothing it over. |
+
+### Coverage gap 
+
+The `usage_per_capita_index` metric is **not published for every geography** in the file:
+
+- **Country level:** 121/121 countries have it (100% coverage).
+- **US states:** 51/52 US subregions have it — every state and DC **except Puerto Rico** (`US-PR`), consistent with the original report's methodology, which was scoped to the 50 states + DC.
+- **Non-US subregions (e.g., Canadian provinces, Brazilian states, South African provinces):** **0/651 have it.** The per-capita index is computed at the subregion level for the US only; for the rest of the world it exists only at the country level.
+
+**Why this matters for Q2:** the research question asks to model per-capita adoption using regional characteristics. That regression is only directly feasible **within the US** at the subregion (state) level, or **across countries** at the country level — there is no cross-national state/province-level per-capita comparison available in this dataset. This reshapes the project into two separate regressions (US state-level; global country-level) rather than one pooled subnational model, and that scoping decision should be made explicit in the modeling write-up, not discovered later.
+
+### Other structural notes from the inventory
+
+- `hierarchy_level` takes values {0,1,2,3} — this is a nesting depth indicator within `category_name` (e.g., broad SOC occupation vs. detailed O*NET task), not a data-quality field; worth mapping out before joining, so covariates get matched at a consistent granularity.
+- Both files cover the exact same two monthly windows (April, May 2026) — good, no date misalignment to fix before joining.
+- `value` has 10,182 unique values in the Claude.ai file vs. only 9,497 in the API file, consistent with the Claude.ai file simply having ~3.3x more rows, not a scale/units mismatch.
+
+---
