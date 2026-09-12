@@ -49,3 +49,37 @@
 
 ---
 
+## Step 3 — Dataset Summary (from the papers, before opening any data file)
+
+Two papers matter here, for different reasons: the **3rd-release report** (Sept 2025) is where the geographic framing and headline numbers for Q2 come from; the **6th-release report** (the one attached to the actual files downloaded) documents the current collection/labeling pipeline. Both are read below.
+
+### How the data was collected
+
+- The underlying data is **Claude.ai consumer conversations** (Free/Pro/Max accounts; the 6th release also folds in Claude Desktop and "Cowork" sessions) and, separately, **first-party API traffic**. Nothing is scraped or self-reported — it is Anthropic's own product usage logs.
+- Conversations are **sampled**, not fully censused. Earlier releases (through the 5th) drew a single ~7-day snapshot per release; the 6th release switched to **continuous daily/hourly sampling**, which is why this file has monthly date ranges (`date_start`/`date_end`) rather than one fixed week.
+- **Every conversation is read and classified by another instance of Claude**, not by a human annotator — this is Anthropic's privacy-preserving "Clio" system. Classifiers map each conversation to (a) an O*NET task / SOC occupation, (b) a "collaboration mode" (directive, feedback loop, task iteration, learning, or validation), and, since the 6th release, (c) an "artifact" category (one of ~30 output types, e.g. document, code snippet, presentation).
+- **Automation vs. augmentation** is a derived split of the collaboration-mode classifier: *directive* + *feedback loop* → automation; *task iteration*, *learning*, *validation* → augmentation. This is exactly the ratio Q2 asks us to model.
+- **Geography is inferred from the IP address** of the conversation (confirmed in the 6th-release report's methodology footnotes), then aggregated up to country or, for the US, state (ISO 3166-2 subdivision) before publication — Anthropic never publishes conversation-level geolocation, only pre-aggregated shares/means/indices per geography.
+- Cells with too few observations to preserve privacy are suppressed, so state/country coverage is uneven by design.
+
+### Unit of observation
+
+**A row is one metric value for one geography × category × facet combination** — *not* a conversation. E.g. one row might be: *(May 2026, US-CA, subregion, onet task facet, `usage_per_capita_index`, 3.71)*. Confirmed directly from the file's own columns (`date_start, date_end, geo_id, geo_level, category_name, hierarchy_level, metric_id, value, node_name, node_external_id`) and from the release's own documentation, which states each row is "one metric value for a specific geography and facet combination." All the real microdata (individual conversations) stay inside Anthropic; what's published is already-aggregated statistics.
+
+### How labels were produced
+
+- **Occupation/task labels** (`category_name = onet` / `soc_occupation`): automated classifier mapping conversation content to the O*NET-SOC taxonomy (U.S. Dept. of Labor).
+- **Collaboration-mode labels** (directive / feedback loop / task iteration / learning / validation, and the automation/augmentation buckets derived from them): automated classifier, described in the original AEI methods paper (Handa et al. 2025) and reused in every subsequent release.
+- **Artifact labels** (new in the 6th release): a new classifier that tags each conversation's primary output into one of ~30 categories.
+- **Geography**: inferred from IP address, not self-reported.
+- None of these labels are human-annotated at the conversation level — they are all classifier output, which matters for Step 5.
+
+### Headline numbers → verification targets for Step 4
+
+From the 3rd-release report:
+
+1. **Global GDP–adoption elasticity:** a 1% higher GDP per capita is associated with a **0.7% higher** Anthropic AI Usage Index (AUI, i.e. `usage_per_capita_index`) across countries.
+2. **US state GDP–adoption elasticity:** within the US, a 1% increase in state GDP per capita is associated with a **1.8% increase** in AUI — a steeper elasticity than the global one — and income differences explain **less than half** the cross-state variation.
+3. **Specific per-capita index values to spot-check:** US AUI ≈ 3.62, Canada ≈ 2.91, UK ≈ 2.67 (countries); within the US, Washington DC ≈ 3.82 and Utah ≈ 3.78 led per-capita usage. (These are from the Sept-2025 sample, not the June-2026 file we actually have — so in Step 4 I'm checking that our file's `usage_per_capita_index` values for these same geographies are in the same *ballpark and rank order*, not identical, since usage has grown and the sampling method changed between releases.)
+
+---
