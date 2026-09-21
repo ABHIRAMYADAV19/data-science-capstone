@@ -172,3 +172,45 @@ All four releases' `claude_automation` and `api_automation` figures matched the 
 - `value` has 10,182 unique values in the Claude.ai file vs. only 9,497 in the API file, consistent with the Claude.ai file simply having ~3.3x more rows, not a scale/units mismatch.
 
 ---
+
+# Step 5 — Raw Example Impressions
+
+## Important framing note
+This dataset has **no raw conversations to read** — Anthropic's Clio pipeline never releases individual conversation text, only aggregated statistics, for privacy reasons. So "raw record" here means one **row of the aggregate CSV** (one geography × facet × variable × cluster_name statistic), not a transcript. The five examples below were pulled from across the downloaded files.
+
+---
+
+### Example 1 — Collaboration pattern, business platform
+```
+variable=collaboration_pct, cluster_name=directive, value=66.30
+```
+This is one of two rows that together make up the "automation" share on the business/API platform (automation = directive + feedback loop). The label makes sense — directive is by far the largest single bucket — but it's a reminder that no single row is a finished statistic on its own; you have to sum multiple rows to get a usable number.
+
+### Example 2 — Task-specific automation rate
+```
+cluster_name="Analyze and categorize news content...::directive", value=92.96 (pct)
+```
+A specific task is over 92% directive on the business platform — well above the overall average. This shows the automation gap is not uniform across tasks, which is a strong hint that the "does the gap differ by category?" part of the research question has a real, non-trivial answer worth digging into further.
+
+### Example 3 — A missing-value pattern that isn't actually a problem
+```
+geo_id=AD, variable=usage_count, cluster_name=NaN, value=40
+```
+Only 40 conversations recorded for this small country in one week — a reminder that country-level rows for small geographies will be noisy. `cluster_name` is null here simply because this particular row is a plain usage count, not a collaboration-pattern breakdown — structural, not a data-quality defect.
+
+### Example 4 — A category whose direction isn't self-evident from the name alone
+```
+cluster_name=no, variable=human_only_ability_pct, value=5.67%
+```
+Only 5.67% of tasks fall into this category on the business platform. The label itself is ambiguous without checking the documentation — is "no" answering "can a human do this without AI?" or "is this human-only"? Worth resolving against the data dictionary before using this field, since guessing the wrong direction would flip the interpretation entirely.
+
+### Example 5 — A real-world confound spotted directly in the data
+```
+platform_and_product = "Claude AI (Free and Pro)"   [earlier snapshot]
+platform_and_product = "Claude AI (Free, Pro, and Max)"   [later snapshot]
+```
+The product name itself changes between snapshots — a new tier was added to the consumer product partway through the data's time range. Not a data-quality issue, but a genuine confound worth flagging: the underlying user population being measured isn't identical across the full time period, which matters for any comparison over time.
+
+---
+
+
