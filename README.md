@@ -1,5 +1,4 @@
 # data-science-capstone
-# data-science-capstone
 # Consumer vs. Business AI Usage — Anthropic Economic Index
 
 ## Research Question
