@@ -40,9 +40,9 @@ CLAIMED = {
 TOLERANCE_PP = 1.0
 
 
-# ---------------------------------------------------------------------------
-# Part 1: generic file inventory
-# ---------------------------------------------------------------------------
+
+#  1: generic file inventory
+
 
 def human_size(num_bytes: int) -> str:
     for unit in ["B", "KB", "MB", "GB"]:
@@ -86,9 +86,7 @@ def print_inventory(data_dir: Path) -> None:
             print("  missing-value rates: 0% across all columns")
 
 
-# ---------------------------------------------------------------------------
 # Part 2: automation/augmentation extraction, both schema versions
-# ---------------------------------------------------------------------------
 
 def extract_long_format(api_path: Path, claude_path: Path) -> dict:
     """Releases 3-5: facet/variable/cluster_name long format."""
@@ -193,7 +191,6 @@ def print_trend_and_verify(trend: list[dict]) -> None:
           "measurement-method artifact before drawing conclusions in the final report.")
 
 
-# ---------------------------------------------------------------------------
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
